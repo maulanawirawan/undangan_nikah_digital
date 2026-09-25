@@ -1113,7 +1113,11 @@
   }
   function renderWishes() {
     const box = $('#wishes');
-    box.innerHTML = wishes.map((w) => wishHtml(w)).join('');
+    const shown = box.dataset.all ? wishes : wishes.slice(0, 5);
+    box.innerHTML = shown.map((w) => wishHtml(w)).join('') +
+      (shown.length < wishes.length ? `<button class="btn btn--line btn--sm wishes__more" type="button">Lihat semua ucapan (${wishes.length})</button>` : '');
+    const more = box.querySelector('.wishes__more');
+    if (more) more.addEventListener('click', () => { box.dataset.all = '1'; renderWishes(); });
     const count = (a) => wishes.filter((w) => w.attend === a).reduce((s, w) => s + (a === 'hadir' ? +w.count || 1 : 1), 0);
     $('#stHadir').textContent = count('hadir');
     $('#stRagu').textContent = count('ragu');
