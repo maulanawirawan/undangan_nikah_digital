@@ -13,7 +13,8 @@ Tanpa build, tanpa framework, tanpa biaya hosting. Cukup edit **satu file** (`as
 | **Hero sinematik** | Video pembuka bergaya camcorder (REC, timecode, letterbox, grain), plus tombol langsung ke Acara, Lokasi, Galeri, dan RSVP. |
 | **Salam dan ayat** | Kalimat ayat menyala kata demi kata saat di-scroll, dengan monogram berputar dan marquee *save the date*. |
 | **Mempelai** | Kartu foto holografik yang miring mengikuti kursor atau kemiringan HP. |
-| **Cerita kami** | Format Instagram Story: tap kanan/kiri, tahan untuk jeda, lengkap dengan lingkaran *highlight* per tahun. |
+| **Cerita kami: Journey 3D** | **Digerakkan scroll.** Kamera meluncur di lintasan 3D melewati polaroid tiap bab cerita, lalu polaroid mengayun menyingkir saat dilewati. Angka tahun raksasa melayang di belakang, dan kamera melambat di setiap bab. Di akhir, dua cincin terbang lalu saling mengait. Ada progress bar per tahun, efek *banking* di tikungan, FOV yang ikut kecepatan scroll, dan parallax kursor/giroskop. |
+| **Cerita (cadangan)** | Di perangkat tanpa WebGL atau dengan *reduce motion*, bagian cerita otomatis tampil sebagai Instagram Story: tap kanan/kiri, tahan untuk jeda. |
 | **Save the date** | Hitung mundur, kalender dengan tanggal dilingkari tangan, tombol Google Calendar, dan file `.ics`. |
 | **Acara** | Kartu bergaya tiket (boarding pass), petunjuk arah, peta, *dress code* dengan palet warna, dan link live streaming. |
 | **Galeri** | Carousel 3D yang bisa diputar, *reel* video vertikal, galeri masonry dengan cap tanggal ala digicam, filter Foto/Video, dan lightbox yang bisa di-swipe. |
@@ -47,7 +48,28 @@ python3 -m http.server 8000
 # lalu buka http://localhost:8000/?to=Budi+Santoso
 ```
 
-## 3. Online-kan gratis (GitHub Pages)
+## 3. Online-kan gratis di Vercel (disarankan)
+
+**Lewat dashboard (bisa dari HP):**
+
+1. Buka [vercel.com](https://vercel.com), lalu login dengan akun GitHub.
+2. Pilih **Add New… → Project**, lalu **Import** repo `undangan_nikah_digital`.
+3. Framework Preset: **Other**. Build Command dan Output Directory **dikosongkan**, karena ini situs statis tanpa build.
+4. Klik **Deploy**. Sekitar 30 detik kemudian undangan online di `https://NAMA-PROJECT.vercel.app`.
+
+Vercel men-deploy branch **`main`** sebagai versi produksi. Branch lain otomatis dapat URL *preview*. Setiap kali ada push ke `main`, undangan ter-update sendiri.
+
+**Lewat terminal:**
+
+```bash
+npm i -g vercel
+vercel          # deploy preview (pertama kali akan diminta login & setup project)
+vercel --prod   # deploy produksi
+```
+
+`vercel.json` sudah mengatur cache: file vendor dan font di-cache lama supaya cepat, halaman `tools/` tidak diindeks Google. Domain sendiri (misal `alyadimas.com`) bisa ditambah di **Project → Settings → Domains**.
+
+## 3b. Alternatif: GitHub Pages
 
 1. Push repo ini ke GitHub.
 2. Buka **Settings → Pages**, lalu pilih *Deploy from a branch*, branch `main`, folder `/ (root)`.
@@ -82,11 +104,13 @@ index.html              kerangka halaman
 assets/js/config.js     ← SEMUA DATA UNDANGAN
 assets/js/main.js       render bagian, interaksi, animasi scroll
 assets/js/scene.js      scene 3D cincin (Three.js)
+assets/js/journey.js    perjalanan 3D yang digerakkan scroll
 assets/js/audio.js      musik (file mp3 atau lo-fi generatif)
 assets/css/style.css    desain
 assets/vendor/          three.js r169, GSAP 3.12 (lokal, tanpa CDN)
 assets/fonts/           Instrument Serif, Inter Tight, JetBrains Mono
 tools/                  generator link tamu & backend Google Sheets
+vercel.json             konfigurasi deploy Vercel
 ```
 
 Bila HP tidak mendukung WebGL, sampul otomatis memakai animasi cincin CSS. Animasi juga dikurangi untuk pengguna yang mengaktifkan *reduce motion*.

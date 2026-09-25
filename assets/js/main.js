@@ -195,6 +195,8 @@
     return { draw, forImg };
   })();
 
+  window.WeddingPlaceholder = Placeholder;
+
   // Tangkap semua foto yang gagal dimuat → ganti dengan placeholder art.
   document.addEventListener('error', (e) => {
     const el = e.target;
@@ -324,7 +326,7 @@
   function renderStory() {
     const S = C.story || [];
     const handle = `${bride.nick}.${groom.nick}`.toLowerCase();
-    $('#cerita').innerHTML = `
+    $('#cerita-story').innerHTML = `
       ${secHead('02 — Cerita Kami', `${words('Our')} <em>${words('Story')}</em>`, 'Tap kanan untuk lanjut, tap kiri untuk kembali, tahan untuk jeda.')}
       <div class="highlights" data-reveal>
         ${S.map((s, i) => `<button class="hl" type="button" data-story="${i}"><span class="hl__ring"><span>${imgTag(s.photo, { alt: s.title, seed: 10 + i, ratio: '1/1' })}</span></span>${esc(s.year)}</button>`).join('')}
@@ -343,6 +345,75 @@
         <div class="story-player__tap story-player__tap--r" data-dir="1" aria-hidden="true"></div>
       </div>
       <p class="story-hint mono">${S.length} chapters · ${esc(C.couple.hashtag || '')}</p>`;
+  }
+
+  // ---------- Journey 3D (scroll-driven) ----------
+  // Dipakai bila perangkat mendukung WebGL & pengguna tidak meminta "reduce motion".
+  // Kalau tidak, bagian Cerita tampil sebagai story player biasa.
+  const journeyMode = (() => {
+    if (reduceMotion || params.has('nojourney')) return false;
+    try {
+      const c = document.createElement('canvas');
+      const gl = c.getContext('webgl2') || c.getContext('webgl');
+      if (!gl) return false;
+      const lose = gl.getExtension('WEBGL_lose_context');
+      if (lose) lose.loseContext();
+      return true;
+    } catch (e) { return false; }
+  })();
+
+  function renderJourney() {
+    const S = C.story || [];
+    const sec = $('#cerita');
+    const story = $('#cerita-story');
+    if (!journeyMode || !S.length) {
+      sec.remove();
+      story.hidden = false;
+      story.id = 'cerita';
+      return;
+    }
+    story.hidden = true;
+    sec.dataset.mode = 'journey';
+    const us = S.map((_, i) => (S.length > 1 ? 0.12 + (i * 0.56) / (S.length - 1) : 0.4));
+    sec.innerHTML = `
+      <div class="journey__sticky">
+        <div class="journey__canvas"></div>
+        <div class="journey__vignette"></div>
+        <div class="grain"></div>
+        <div class="journey__hud">
+          <span class="mono">02 — Cerita Kami</span>
+          <div class="journey__track"><i class="journey__bar"></i>${us.map((u, i) => `<b style="left:${(u * 100).toFixed(1)}%"><span class="mono">${esc(S[i].year)}</span></b>`).join('')}</div>
+        </div>
+        <div class="journey__intro">
+          <p class="mono">Chapter 02</p>
+          <h2 class="journey__title">Our <em>Journey</em></h2>
+          <p class="journey__lead">Scroll pelan-pelan. Kami ajak kamu menyusuri cerita kami, dari ${esc(S[0].year)} sampai hari ini.</p>
+          <span class="journey__scroll mono"><i></i>Scroll</span>
+        </div>
+        <div class="journey__caps">
+          ${S.map((s, i) => `
+            <article class="journey__cap" data-u="${us[i].toFixed(4)}">
+              <span class="journey__year mono">● ${esc(s.year)} · Bab ${i + 1}</span>
+              <h3>${esc(s.title)}</h3>
+              <p>${esc(s.text)}</p>
+            </article>`).join('')}
+        </div>
+        <div class="journey__end">
+          <p class="mono">…dan babak berikutnya dimulai</p>
+          <h3>${first ? fmtDots(first) : ''}</h3>
+          <p class="journey__names">${esc(names)}</p>
+        </div>
+      </div>`;
+    // Kalau modul 3D gagal (mis. dibuka via file:// atau GPU bermasalah) → pakai story player.
+    const fallback = () => {
+      if (!sec.isConnected) return;
+      sec.remove();
+      story.hidden = false;
+      story.id = 'cerita';
+      if (window.ScrollTrigger) ScrollTrigger.refresh();
+    };
+    window.addEventListener('journey:fail', fallback);
+    window.addEventListener('load', () => setTimeout(() => { if (!window.RingScene) fallback(); }, 2500));
   }
 
   function renderCountdown() {
@@ -1202,7 +1273,8 @@
       ens.forEach((en) => {
         if (!en.isIntersecting) return;
         links.forEach((a) => a.classList.remove('is-active'));
-        const id = en.target.id === 'hitung' ? 'acara' : en.target.id === 'intro' ? 'home' : en.target.id === 'penutup' ? 'hadiah' : en.target.id;
+        const t = en.target.id;
+        const id = t === 'hitung' ? 'acara' : t === 'intro' ? 'home' : t === 'penutup' ? 'hadiah' : t === 'cerita-story' ? 'cerita' : t;
         const a = map.get(id);
         if (a) a.classList.add('is-active');
       });
@@ -1397,6 +1469,7 @@
     renderIntro();
     renderCouple();
     renderStory();
+    renderJourney();
     renderCountdown();
     renderEvents();
     renderGallery();

@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function makeEnvironment(renderer) {
+export function makeEnvironment(renderer) {
   // Studio "softbox" buatan sendiri: panel terang berbentuk strip agar logam
   // memantulkan garis cahaya seperti foto perhiasan.
   const env = new THREE.Scene();
@@ -70,7 +70,7 @@ function starTexture() {
   return t;
 }
 
-function dotTexture() {
+export function dotTexture() {
   const s = 64, c = document.createElement('canvas');
   c.width = c.height = s;
   const g = c.getContext('2d');
@@ -98,23 +98,8 @@ function diamondGeometry() {
   return g.toNonIndexed();
 }
 
-export function createRings(host, opts = {}) {
-  const { interactive = false, compact = false } = opts;
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-  const dpr = Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75);
-  renderer.setPixelRatio(dpr);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
-  renderer.setClearColor(0x000000, 0);
-  host.appendChild(renderer.domElement);
-
-  const scene = new THREE.Scene();
-  scene.environment = makeEnvironment(renderer);
-
-  const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 100);
-  const baseZ = compact ? 8.4 : 7.6;
-  camera.position.set(0, 0, baseZ);
-
+// Membangun sepasang cincin (dipakai sampul, perjalanan scroll, dan penutup)
+export function buildRingPair() {
   // ---------- Materials ----------
   const gold = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(1.0, 0.77, 0.42), metalness: 1, roughness: 0.16,
@@ -133,7 +118,6 @@ export function createRings(host, opts = {}) {
 
   // ---------- Rings ----------
   const group = new THREE.Group();
-  scene.add(group);
 
   const bandA = new THREE.TorusGeometry(1.05, 0.078, 48, 220);
   const ringA = new THREE.Mesh(bandA, gold);
@@ -194,6 +178,43 @@ export function createRings(host, opts = {}) {
     parent.add(sp);
     glints.push(sp);
   });
+
+  const update = (t) => {
+    glints.forEach((g) => {
+      const d = g.userData;
+      const k = Math.pow(Math.max(0, Math.sin(t * d.speed + d.phase)), 12);
+      g.scale.setScalar(0.001 + d.base * k);
+      g.material.rotation = t * 0.4 + d.phase;
+    });
+  };
+  const dispose = () => {
+    group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    [gold, rose, diamondMat].forEach((m) => m.dispose());
+    starTex.dispose();
+  };
+  return { group, ringA, ringBGroup, ringB, diamond, update, dispose };
+}
+
+export function createRings(host, opts = {}) {
+  const { interactive = false, compact = false } = opts;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  const dpr = Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75);
+  renderer.setPixelRatio(dpr);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
+  renderer.setClearColor(0x000000, 0);
+  host.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.environment = makeEnvironment(renderer);
+
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 100);
+  const baseZ = compact ? 8.4 : 7.6;
+  camera.position.set(0, 0, baseZ);
+
+  const rings = buildRingPair();
+  const group = rings.group;
+  scene.add(group);
 
   // ---------- Partikel debu cahaya ----------
   const N = compact ? 160 : 320;
@@ -286,12 +307,7 @@ export function createRings(host, opts = {}) {
       group.position.y = (compact ? 0 : 0.1) + Math.sin(t * 0.9) * 0.06;
     }
 
-    glints.forEach((g) => {
-      const d = g.userData;
-      const k = Math.pow(Math.max(0, Math.sin(t * d.speed + d.phase)), 12);
-      g.scale.setScalar(0.001 + d.base * k);
-      g.material.rotation = t * 0.4 + d.phase;
-    });
+    rings.update(t);
 
     const p = pGeo.attributes.position.array;
     for (let i = 0; i < N; i++) {
@@ -329,8 +345,10 @@ export function createRings(host, opts = {}) {
     target.removeEventListener('pointerdown', onDown);
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('deviceorientation', onOrient);
-    scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
-    [gold, rose, diamondMat, pMat].forEach((m) => m.dispose());
+    rings.dispose();
+    pGeo.dispose();
+    pMat.dispose();
+    scene.environment.dispose();
     renderer.dispose();
     renderer.domElement.remove();
   };
@@ -339,7 +357,7 @@ export function createRings(host, opts = {}) {
 }
 
 // ---------- Bootstrapping ----------
-function webglOK() {
+export function webglOK() {
   try {
     const c = document.createElement('canvas');
     return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')));
