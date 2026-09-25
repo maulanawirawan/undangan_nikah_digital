@@ -21,16 +21,16 @@
       bride: {
         nick: 'Maulana',
         full: 'Maulana',
-        parents: 'Putri pertama dari Bapak Hendra Wijaya & Ibu Sari Lestari',
+        parents: 'Putra pertama dari Bapak Fulan & Ibu Fulanah',
         instagram: 'cirrostratoooze',
-        photo: U('photo-1460978812857-470ed1c77af0', 900),
+        photo: '',
       },
       groom: {
         nick: 'Wirawan',
         full: 'Wirawan',
-        parents: 'Putra kedua dari Bapak Agus Santoso & Ibu Rina Marlina',
+        parents: 'Putra kedua dari Bapak Anu & Ibu Anu',
         instagram: 'cirrostratoooze',
-        photo: U('photo-1507504031003-b417219a0fde', 900),
+        photo: '',
       },
       hashtag: '#MaulanaWirawanJourney',
     },
@@ -59,9 +59,9 @@
         title: 'Akad Nikah',
         start: '2026-12-12T08:00:00+07:00',
         end: '2026-12-12T10:00:00+07:00',
-        venue: 'Masjid Al-Hikmah',
-        address: 'Jl. Bangka Raya No. 1, Mampang Prapatan, Jakarta Selatan',
-        maps: 'https://www.google.com/maps/search/?api=1&query=Mampang+Prapatan+Jakarta+Selatan',
+        venue: 'Masjid Senandika (fiktif)',
+        address: 'Jl. Contoh Raya No. 00, Kota Khayalan',
+        maps: 'https://www.google.com/maps/search/?api=1&query=Monas+Jakarta',
         note: 'Keluarga & kerabat dekat',
       },
       {
@@ -69,14 +69,14 @@
         title: 'Resepsi',
         start: '2026-12-12T11:00:00+07:00',
         end: '2026-12-12T14:00:00+07:00',
-        venue: 'The Glasshouse Garden',
-        address: 'Jl. Kemang Raya No. 8, Bangka, Jakarta Selatan',
-        maps: 'https://www.google.com/maps/search/?api=1&query=Kemang+Raya+Jakarta+Selatan',
+        venue: 'Taman Kaca Senja (fiktif)',
+        address: 'Jl. Imajinasi No. 00, Kota Khayalan',
+        maps: 'https://www.google.com/maps/search/?api=1&query=Monas+Jakarta',
         note: 'Terbuka untuk semua tamu undangan',
       },
     ],
     // Peta yang ditampilkan di halaman (teks pencarian Google Maps)
-    mapQuery: 'Kemang Raya, Jakarta Selatan',
+    mapQuery: 'Monas, Jakarta',
 
     dressCode: {
       title: 'Earth & Merlot',
@@ -100,15 +100,15 @@
 
     // Video pembuka (hero). Kalau gagal dimuat, foto poster tampil dengan efek gerak halus.
     heroVideo: {
-      src: 'https://assets.mixkit.co/videos/5217/5217-720.mp4',
-      poster: U('photo-1519741497674-611481863552', 1400),
+      src: '',
+      poster: '',
     },
 
     // Video vertikal ala reels
     reel: {
       title: 'Prewedding Reel',
-      src: 'https://assets.mixkit.co/videos/5217/5217-720.mp4',
-      poster: U('photo-1511285560929-80b456fea0bc', 900),
+      src: '',
+      poster: '',
     },
 
     // Cerita (tampil seperti Instagram Story, tap kiri/kanan untuk navigasi)
@@ -117,42 +117,42 @@
         year: '2019',
         title: 'Pertama ketemu',
         text: 'Satu kepanitiaan kampus, beda divisi. Dia pinjam charger, aku lupa minta balik.',
-        photo: U('photo-1516589178581-6cd7833ae3b2', 900),
+        photo: '',
       },
       {
         year: '2021',
         title: 'Resmi jadian',
         text: 'Di warung kopi kecil pas hujan deras. Nggak romantis, tapi jujur banget.',
-        photo: U('photo-1529636798458-92182e662485', 900),
+        photo: '',
       },
       {
         year: '2024',
         title: 'Lamaran',
         text: 'Dua keluarga duduk satu meja. Deg-degan, lalu lega, lalu banyak tawa.',
-        photo: U('photo-1515934751635-c81c6bc9a2d8', 900),
+        photo: '',
       },
       {
         year: '2026',
         title: 'Hari H',
         text: 'Babak baru dimulai. Kami ingin kamu ada di sana untuk menyaksikannya.',
-        photo: U('photo-1519225421980-715cb0215aed', 900),
+        photo: '',
       },
     ],
 
     // Galeri: type 'photo' atau 'video'. date dipakai untuk cap tanggal ala digicam.
     gallery: [
-      { type: 'photo', src: U('photo-1519741497674-611481863552'), alt: 'Momen berdua', date: '2026-10-04', ratio: '4/5' },
-      { type: 'photo', src: U('photo-1511285560929-80b456fea0bc'), alt: 'Tertawa bersama', date: '2026-10-04', ratio: '3/4' },
-      { type: 'video', src: 'https://assets.mixkit.co/videos/5217/5217-720.mp4', poster: U('photo-1606216794074-735e91aa2c92'), alt: 'Cuplikan prewedding', date: '2026-10-05', ratio: '9/16' },
-      { type: 'photo', src: U('photo-1522673607200-164d1b6ce486'), alt: 'Genggaman tangan', date: '2026-10-05', ratio: '1/1' },
-      { type: 'photo', src: U('photo-1537633552985-df8429e8048b'), alt: 'Golden hour', date: '2026-10-05', ratio: '3/4' },
-      { type: 'photo', src: U('photo-1583939003579-730e3918a45a'), alt: 'Cincin', date: '2024-06-15', ratio: '4/5' },
-      { type: 'photo', src: U('photo-1591604466107-ec97de577aff'), alt: 'Jalan sore', date: '2026-10-04', ratio: '2/3' },
-      { type: 'photo', src: U('photo-1520854221256-17451cc331bf'), alt: 'Detail', date: '2026-10-04', ratio: '1/1' },
-      { type: 'photo', src: U('photo-1465495976277-4387d4b0b4c6'), alt: 'Bunga', date: '2026-10-05', ratio: '4/5' },
-      { type: 'photo', src: U('photo-1469371670807-013ccf25f16a'), alt: 'Senyum', date: '2026-10-05', ratio: '3/4' },
-      { type: 'photo', src: U('photo-1532712938310-34cb3982ef74'), alt: 'Bersama', date: '2026-10-04', ratio: '4/5' },
-      { type: 'photo', src: U('photo-1606800052052-a08af7148866'), alt: 'Sore di taman', date: '2026-10-05', ratio: '2/3' },
+      { type: 'photo', src: '', alt: 'Momen berdua', date: '2026-10-04', ratio: '4/5' },
+      { type: 'photo', src: '', alt: 'Tertawa bersama', date: '2026-10-04', ratio: '3/4' },
+      { type: 'photo', src: '', alt: 'Cuplikan prewedding', date: '2026-10-05', ratio: '9/16' },
+      { type: 'photo', src: '', alt: 'Genggaman tangan', date: '2026-10-05', ratio: '1/1' },
+      { type: 'photo', src: '', alt: 'Golden hour', date: '2026-10-05', ratio: '3/4' },
+      { type: 'photo', src: '', alt: 'Cincin', date: '2024-06-15', ratio: '4/5' },
+      { type: 'photo', src: '', alt: 'Jalan sore', date: '2026-10-04', ratio: '2/3' },
+      { type: 'photo', src: '', alt: 'Detail', date: '2026-10-04', ratio: '1/1' },
+      { type: 'photo', src: '', alt: 'Bunga', date: '2026-10-05', ratio: '4/5' },
+      { type: 'photo', src: '', alt: 'Senyum', date: '2026-10-05', ratio: '3/4' },
+      { type: 'photo', src: '', alt: 'Bersama', date: '2026-10-04', ratio: '4/5' },
+      { type: 'photo', src: '', alt: 'Sore di taman', date: '2026-10-05', ratio: '2/3' },
     ],
 
     rsvp: {
@@ -160,29 +160,29 @@
       // agar RSVP & ucapan tersimpan di Google Sheets dan terlihat semua tamu.
       endpoint: '',
       // Nomor WhatsApp untuk konfirmasi (format internasional tanpa +)
-      whatsapp: '6281234567890',
+      whatsapp: '620000000000',
       maxGuests: 4,
       deadline: '2026-12-01',
     },
 
     // Ucapan contoh supaya dinding ucapan tidak kosong (hapus kalau sudah live)
     wishesSeed: [
-      { name: 'Nadia & Fikri', attend: 'hadir', message: 'Akhirnyaaa! Selamat ya kalian berdua, semoga sakinah mawaddah warahmah. See you di Kemang!', time: '2026-09-20T19:12:00+07:00' },
-      { name: 'Tante Wulan', attend: 'hadir', message: 'Barakallahu lakuma wa baraka alaikuma. Semoga menjadi keluarga yang penuh berkah.', time: '2026-09-19T08:40:00+07:00' },
-      { name: 'Raka (tim BEM 2019)', attend: 'ragu', message: 'Saksi hidup kasus charger itu. Bangga banget sama kalian. Doain bisa cuti ya!', time: '2026-09-18T22:05:00+07:00' },
-      { name: 'Sekar', attend: 'tidak', message: 'Maaf belum bisa datang karena lagi di luar kota. Doa terbaik dari jauh, love you both!', time: '2026-09-17T12:30:00+07:00' },
+      { name: 'Teman Kampus', attend: 'hadir', message: 'Akhirnyaaa! Selamat ya kalian berdua, semoga sakinah mawaddah warahmah. See you di hari H!', time: '2026-09-20T19:12:00+07:00' },
+      { name: 'Keluarga Besar', attend: 'hadir', message: 'Barakallahu lakuma wa baraka alaikuma. Semoga menjadi keluarga yang penuh berkah.', time: '2026-09-19T08:40:00+07:00' },
+      { name: 'Tim BEM 2019', attend: 'ragu', message: 'Saksi hidup kasus charger itu. Bangga banget sama kalian. Doain bisa cuti ya!', time: '2026-09-18T22:05:00+07:00' },
+      { name: 'Sahabat Jauh', attend: 'tidak', message: 'Maaf belum bisa datang karena lagi di luar kota. Doa terbaik dari jauh, love you both!', time: '2026-09-17T12:30:00+07:00' },
     ],
 
     gifts: {
       note: 'Doa restu kalian sudah lebih dari cukup. Kalau ingin memberi tanda kasih, bisa lewat amplop digital di bawah ini.',
       accounts: [
-        { bank: 'BCA', number: '1234567890', name: 'Maulana' },
-        { bank: 'Mandiri', number: '1370012345678', name: 'Wirawan' },
+        { bank: 'Bank Contoh', number: '0000000000', name: 'Maulana' },
+        { bank: 'Bank Fiktif', number: '0000000000000', name: 'Wirawan' },
       ],
       address: {
         label: 'Kirim kado fisik',
         name: 'Maulana & Wirawan',
-        text: 'Jl. Kenanga No. 21, Cilandak, Jakarta Selatan 12430',
+        text: 'Jl. Contoh No. 00, Kota Khayalan 00000',
       },
     },
 
