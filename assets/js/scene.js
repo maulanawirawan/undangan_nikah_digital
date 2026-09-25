@@ -4,7 +4,7 @@
  * Dipakai di sampul (bisa diputar) dan di bagian penutup.
  */
 import * as THREE from 'three';
-import { loadStudioHDR, createDiamondMaterial } from './diamond.js';
+import { loadStudioHDR, createDiamondMaterial, gemEnvironment } from './diamond.js';
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -231,13 +231,13 @@ export function buildRingPair() {
   });
   const diamondGeo = diamondGeometry();
   const diamond = new THREE.Mesh(diamondGeo, diamondMat);
-  // ganti ke material refraksi ray-traced begitu HDRI studio siap
-  loadStudioHDR().then((tex) => {
-    const m = createDiamondMaterial(diamondGeo, tex);
+  // material refraksi ray-traced dengan light box perhiasan
+  try {
+    const m = createDiamondMaterial(diamondGeo, gemEnvironment());
     m.bindTo(diamond);
     diamond.material = m;
     diamondMat.dispose();
-  }).catch((e) => console.warn('Berlian: HDRI gagal dimuat, pakai material cadangan', e));
+  } catch (e) { console.warn('Berlian: pakai material cadangan', e); }
   diamond.scale.setScalar(DS);
   diamond.position.y = 0.26;
   setting.add(diamond);
