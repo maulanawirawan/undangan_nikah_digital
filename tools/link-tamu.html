@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generator Link Tamu</title>
+  <meta name="robots" content="noindex">
+  <style>
+    @font-face { font-family: "Instrument Serif"; src: url("../assets/fonts/instrument-serif-latin-400-normal.woff2") format("woff2"); }
+    @font-face { font-family: "Inter Tight"; src: url("../assets/fonts/inter-tight-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+    :root { --paper: #f4eee6; --cream: #fbf5ec; --ink: #1b1315; --ink-2: #4a3d3b; --line: rgba(27,19,21,.14); --merlot: #5a1627; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 "Inter Tight", system-ui, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 40px 16px 80px; }
+    h1 { font: 400 48px/1 "Instrument Serif", serif; margin: 0 0 8px; }
+    h1 em { color: var(--merlot); }
+    p.lead { color: var(--ink-2); margin: 0 0 28px; }
+    label { display: block; font-weight: 600; font-size: 13px; margin: 18px 0 6px; }
+    input, textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--cream); padding: 12px 14px; font: inherit; color: inherit; }
+    textarea { min-height: 140px; resize: vertical; }
+    small { color: var(--ink-2); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 10px 16px; background: var(--ink); color: var(--cream); font: 600 13px "Inter Tight", sans-serif; cursor: pointer; text-decoration: none; }
+    .btn--line { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    ul { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 10px; }
+    li { background: var(--cream); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 8px; }
+    li b { font-size: 16px; }
+    li code { font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
+    li .row { margin: 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Link <em>tamu</em></h1>
+    <p class="lead">Tulis nama tamu (satu per baris). Setiap tamu dapat link pribadi, dan namanya muncul di sampul undangan.</p>
+
+    <label for="base">Alamat undangan</label>
+    <input id="base" placeholder="https://namakamu.github.io/undangan_nikah_digital/">
+    <small>Alamat tempat undangan kamu di-online-kan.</small>
+
+    <label for="names">Nama tamu</label>
+    <textarea id="names" placeholder="Budi Santoso&#10;Keluarga Bpk. Hendra&#10;Sekar & Partner"></textarea>
+
+    <label for="tpl">Template pesan WhatsApp</label>
+    <textarea id="tpl"></textarea>
+    <small>Gunakan {nama} dan {link}.</small>
+
+    <div class="row">
+      <button class="btn" id="gen" type="button">Buat link</button>
+      <button class="btn btn--line" id="copyAll" type="button">Salin semua</button>
+    </div>
+    <ul id="out"></ul>
+  </main>
+  <script>
+    (function () {
+      const $ = (s) => document.querySelector(s);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const guess = location.href.replace(/tools\/link-tamu\.html.*$/, '');
+      $('#base').value = /^https?:/.test(guess) ? guess : '';
+      $('#tpl').value = 'Assalamu\'alaikum, {nama}.\n\nTanpa mengurangi rasa hormat, kami mengundang kamu ke pernikahan kami. Detail acara, lokasi, dan RSVP ada di sini:\n{link}\n\nMerupakan kebahagiaan bagi kami bila kamu berkenan hadir. Terima kasih!';
+      let items = [];
+      const build = () => {
+        const base = $('#base').value.trim();
+        const names = $('#names').value.split('\n').map((s) => s.trim()).filter(Boolean);
+        items = names.map((n) => {
+          let link;
+          try {
+            const u = new URL(base || 'https://contoh.com/');
+            u.searchParams.set('to', n);
+            link = u.toString();
+          } catch (e) {
+            link = `${base}?to=${encodeURIComponent(n)}`;
+          }
+          const msg = $('#tpl').value.replaceAll('{nama}', n).replaceAll('{link}', link);
+          return { n, link, msg };
+        });
+        $('#out').innerHTML = items.map((it, i) => `
+          <li>
+            <b>${esc(it.n)}</b>
+            <code>${esc(it.link)}</code>
+            <div class="row">
+              <button class="btn btn--line" type="button" data-copy="${i}">Salin pesan</button>
+              <a class="btn" href="https://wa.me/?text=${encodeURIComponent(it.msg)}" target="_blank" rel="noopener">Kirim via WhatsApp</a>
+              <a class="btn btn--line" href="${esc(it.link)}" target="_blank" rel="noopener">Pratinjau</a>
+            </div>
+          </li>`).join('');
+      };
+      const copy = async (text, btn) => {
+        try { await navigator.clipboard.writeText(text); } catch (e) {
+          const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+        }
+        const old = btn.textContent; btn.textContent = 'Disalin ✓'; setTimeout(() => { btn.textContent = old; }, 1400);
+      };
+      $('#gen').addEventListener('click', build);
+      $('#copyAll').addEventListener('click', (e) => { if (!items.length) build(); copy(items.map((it) => `${it.n}\n${it.link}`).join('\n\n'), e.currentTarget); });
+      $('#out').addEventListener('click', (e) => { const b = e.target.closest('[data-copy]'); if (b) copy(items[+b.dataset.copy].msg, b); });
+    })();
+  </script>
+</body>
+</html>
