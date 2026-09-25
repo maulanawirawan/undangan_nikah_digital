@@ -8,7 +8,7 @@ Tanpa build, tanpa framework, tanpa biaya hosting. Cukup edit **satu file** (`as
 
 | Bagian | Isi |
 | --- | --- |
-| **Sampul 3D** | Sepasang cincin emas dan rose gold yang saling mengait, dirender real-time dengan Three.js: pantulan studio, berlian berfaset, kilau, dan debu cahaya. Cincin bisa diputar dengan jari. Nama tamu tampil otomatis dari link. |
+| **Sampul 3D** | Sepasang cincin emas dan rose gold yang saling mengait, dirender real-time dengan Three.js dan disinari HDRI studio foto. Cincin rose gold memakai berlian **marquise 58 faset** berproporsi ideal (L/W 1,95, table 58%, depth 61%). Cahaya di dalam berlian di-*ray-trace*: dibiaskan, dipantulkan total di dalam faset, lalu dipecah jadi *fire* pelangi. Cincin bisa **diputar bebas ke segala arah** (trackball + inersia), di-zoom (cubit/scroll), dan diketuk dua kali untuk reset. |
 | **Transisi buka** | Kamera meluncur ke lubang cincin, lalu layar terbuka seperti iris lensa ke halaman utama. |
 | **Hero sinematik** | Video pembuka bergaya camcorder (REC, timecode, letterbox, grain), plus tombol langsung ke Acara, Lokasi, Galeri, dan RSVP. |
 | **Salam dan ayat** | Kalimat ayat menyala kata demi kata saat di-scroll, dengan monogram berputar dan marquee *save the date*. |
@@ -118,6 +118,9 @@ Bila HP tidak mendukung WebGL, sampul otomatis memakai animasi cincin CSS. Anima
 ## Lisensi pihak ketiga
 
 - three.js: MIT
+- three-mesh-bvh (pelacakan sinar di dalam berlian): MIT, Garrett Johnson
+- Shader refraksi berlian: diadaptasi dari `MeshRefractionMaterial` (N8Programs) di @react-three/drei, MIT
+- HDRI studio (`assets/media/studio.exr`): Poly Haven via @pmndrs/assets, CC0
 - GSAP: [Standard "No Charge" License](https://gsap.com/standard-license) (gratis, termasuk penggunaan komersial)
 - Font Instrument Serif, Inter Tight, JetBrains Mono: SIL Open Font License
 - Foto placeholder: [Unsplash License](https://unsplash.com/license); video placeholder: [Mixkit License](https://mixkit.co/license/)

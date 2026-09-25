@@ -4,8 +4,24 @@
  * Dipakai di sampul (bisa diputar) dan di bagian penutup.
  */
 import * as THREE from 'three';
+import { loadStudioHDR, createDiamondMaterial } from './diamond.js';
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Lingkungan studio foto (HDRI Poly Haven, CC0) untuk pantulan logam yang realistis.
+// Sementara HDRI dimuat, dipakai softbox buatan (makeEnvironment).
+export function useStudioEnv(renderer, scene, intensity = 1) {
+  scene.environment = makeEnvironment(renderer);
+  loadStudioHDR().then((tex) => {
+    const pm = new THREE.PMREMGenerator(renderer);
+    const env = pm.fromEquirectangular(tex).texture;
+    pm.dispose();
+    const old = scene.environment;
+    scene.environment = env;
+    scene.environmentIntensity = intensity;
+    if (old) old.dispose();
+  }).catch(() => {});
+}
 
 export function makeEnvironment(renderer) {
   // Studio "softbox" buatan sendiri: panel terang berbentuk strip agar logam
@@ -197,8 +213,8 @@ export function buildRingPair() {
   ringBGroup.add(setting);
 
   const DS = 0.3; // skala berlian (panjang ≈ 0.58, lebar ≈ 0.3 satuan cincin)
-  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.065, 0.12, 24), rose);
-  head.scale.x = 1.9; // dudukan ikut lonjong
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.05, 0.1, 24), rose);
+  head.scale.x = 1.7; // dudukan ikut lonjong
   head.position.y = 0.06;
   head.scale.z = 0.9;
   setting.add(head);
@@ -213,7 +229,15 @@ export function buildRingPair() {
     p.rotation.set(-(pz / len) * 0.3, 0, (px / len) * 0.3); // miring sedikit ke dalam, mencengkeram batu
     setting.add(p);
   });
-  const diamond = new THREE.Mesh(diamondGeometry(), diamondMat);
+  const diamondGeo = diamondGeometry();
+  const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+  // ganti ke material refraksi ray-traced begitu HDRI studio siap
+  loadStudioHDR().then((tex) => {
+    const m = createDiamondMaterial(diamondGeo, tex);
+    m.bindTo(diamond);
+    diamond.material = m;
+    diamondMat.dispose();
+  }).catch((e) => console.warn('Berlian: HDRI gagal dimuat, pakai material cadangan', e));
   diamond.scale.setScalar(DS);
   diamond.position.y = 0.26;
   setting.add(diamond);
@@ -267,7 +291,7 @@ export function createRings(host, opts = {}) {
   host.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.environment = makeEnvironment(renderer);
+  useStudioEnv(renderer, scene, 1.15);
 
   const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 100);
   const baseZ = compact ? 8.4 : 7.6;
@@ -298,38 +322,95 @@ export function createRings(host, opts = {}) {
   const points = new THREE.Points(pGeo, pMat);
   scene.add(points);
 
-  // ---------- Pose awal ----------
-  const baseRot = new THREE.Euler(0.42, -0.5, 0.18);
-  group.rotation.copy(baseRot);
+  // ---------- Pose & interaksi: trackball bebas ke segala arah ----------
+  const baseQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.42, -0.5, 0.18));
+  const userQ = new THREE.Quaternion();
+  const hoverQ = new THREE.Quaternion();
+  const qTmp = new THREE.Quaternion();
+  const IDENT = new THREE.Quaternion();
+  const AX = new THREE.Vector3(1, 0, 0), AY = new THREE.Vector3(0, 1, 0);
+  group.quaternion.copy(baseQ);
   if (compact) group.scale.setScalar(0.82);
-
-  // ---------- Interaksi ----------
-  const state = { spin: 0, spinVel: 0, tiltX: 0, tiltY: 0, targetX: 0, targetY: 0, dragging: false, lastX: 0, opening: false };
+  const clampN = THREE.MathUtils.clamp;
+  const state = {
+    vx: 0, vy: 0, pendX: 0, pendY: 0, hx: 0, hy: 0, thx: 0, thy: 0,
+    dragging: false, lastX: 0, lastY: 0, opening: false, resetting: false,
+    zoom: 1, tZoom: 1, idle: 10, baseDist: baseZ,
+  };
+  const pointers = new Map();
+  let pinch0 = 0, zoom0 = 1;
   const onMove = (e) => {
     const r = host.getBoundingClientRect();
-    const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
-    const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
-    state.targetX = ny * 0.18;
-    state.targetY = nx * 0.3;
-    if (state.dragging) {
-      const dx = e.clientX - state.lastX;
-      state.lastX = e.clientX;
-      state.spinVel = dx * 0.006;
-      state.spin += state.spinVel;
+    if (!state.dragging && e.pointerType !== 'touch') {
+      state.thx = (((e.clientY - r.top) / r.height) * 2 - 1) * 0.12;
+      state.thy = (((e.clientX - r.left) / r.width) * 2 - 1) * 0.2;
+    }
+    if (!interactive || !pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch0) state.tZoom = clampN((zoom0 * pinch0) / Math.max(d, 1), 0.55, 1.4);
+      return;
+    }
+    if (!state.dragging) return;
+    const dx = e.clientX - state.lastX, dy = e.clientY - state.lastY;
+    state.lastX = e.clientX; state.lastY = e.clientY;
+    const k = 4.2 / Math.max(260, Math.min(r.width, r.height)); // ± setengah putaran per lebar layar
+    state.pendY += dx * k;
+    state.pendX += dy * k;
+  };
+  const onDown = (e) => {
+    if (e.target.closest && e.target.closest('button, a')) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    state.resetting = false;
+    state.idle = 0;
+    if (pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      pinch0 = Math.hypot(a.x - b.x, a.y - b.y);
+      zoom0 = state.tZoom;
+      state.dragging = false;
+    } else {
+      state.dragging = true;
+      state.lastX = e.clientX; state.lastY = e.clientY;
+      state.vx = state.vy = 0;
     }
   };
-  const onDown = (e) => { state.dragging = true; state.lastX = e.clientX; };
-  const onUp = () => { state.dragging = false; };
+  const onUp = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch0 = 0;
+    if (pointers.size === 1) {
+      const [p] = [...pointers.values()];
+      state.dragging = true; state.lastX = p.x; state.lastY = p.y;
+    } else if (pointers.size === 0) state.dragging = false;
+  };
+  const onWheel = (e) => {
+    e.preventDefault();
+    state.tZoom = clampN(state.tZoom * (1 + e.deltaY * 0.0012), 0.55, 1.4);
+    state.idle = 0;
+  };
+  const onDbl = () => { state.resetting = true; state.tZoom = 1; state.vx = state.vy = 0; };
+  let lastTap = 0;
+  const onTap = (e) => {
+    if (e.pointerType !== 'touch') return;
+    const now = performance.now();
+    if (now - lastTap < 300) onDbl();
+    lastTap = now;
+  };
   const onOrient = (e) => {
-    if (e.gamma == null) return;
-    state.targetY = THREE.MathUtils.clamp(e.gamma / 45, -1, 1) * 0.35;
-    state.targetX = THREE.MathUtils.clamp((e.beta - 45) / 45, -1, 1) * 0.18;
+    if (e.gamma == null || state.dragging) return;
+    state.thy = clampN(e.gamma / 45, -1, 1) * 0.25;
+    state.thx = clampN((e.beta - 45) / 45, -1, 1) * 0.12;
   };
   const target = interactive ? host.closest('section') || host : host;
   target.addEventListener('pointermove', onMove);
   if (interactive) {
     target.addEventListener('pointerdown', onDown);
+    target.addEventListener('pointerup', onTap);
+    target.addEventListener('wheel', onWheel, { passive: false });
+    target.addEventListener('dblclick', onDbl);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
     window.addEventListener('deviceorientation', onOrient);
   }
 
@@ -340,7 +421,8 @@ export function createRings(host, opts = {}) {
     camera.aspect = w / h;
     // di layar portrait mundurkan kamera agar cincin muat
     const portrait = h > w;
-    camera.position.z = state.opening ? camera.position.z : baseZ * (portrait ? Math.min(1.55, 0.75 + (h / w) * 0.42) : 1);
+    state.baseDist = baseZ * (portrait ? Math.min(1.55, 0.75 + (h / w) * 0.42) : 1);
+    if (!state.opening) camera.position.z = state.baseDist * state.zoom;
     camera.updateProjectionMatrix();
   };
   const ro = new ResizeObserver(resize);
@@ -356,16 +438,31 @@ export function createRings(host, opts = {}) {
     t += dt;
 
     if (!state.opening) {
-      if (!state.dragging) {
-        state.spinVel *= 0.95;
-        state.spin += state.spinVel + (reduceMotion ? 0 : dt * 0.22);
+      // rotasi: saat digeser ikuti jari, setelah dilepas meluncur (inersia)
+      if (state.dragging) {
+        state.vx = state.pendX; state.vy = state.pendY;
+        state.pendX = state.pendY = 0;
+      } else {
+        const decay = Math.pow(0.9, dt * 60);
+        state.vx *= decay; state.vy *= decay;
+        state.idle += dt;
       }
-      state.tiltX += (state.targetX - state.tiltX) * 0.05;
-      state.tiltY += (state.targetY - state.tiltY) * 0.05;
-      group.rotation.x = baseRot.x + state.tiltX + Math.sin(t * 0.6) * 0.04;
-      group.rotation.y = baseRot.y + state.spin + state.tiltY;
-      group.rotation.z = baseRot.z + Math.sin(t * 0.4) * 0.03;
+      // putar otomatis pelan bila tidak disentuh beberapa detik
+      const auto = reduceMotion ? 0 : dt * 0.25 * clampN((state.idle - 2) / 2, 0, 1);
+      qTmp.setFromAxisAngle(AY, state.vy + auto); userQ.premultiply(qTmp);
+      qTmp.setFromAxisAngle(AX, state.vx); userQ.premultiply(qTmp);
+      userQ.normalize();
+      if (state.resetting) {
+        userQ.slerp(IDENT, 1 - Math.pow(0.88, dt * 60));
+        if (userQ.angleTo(IDENT) < 0.002) state.resetting = false;
+      }
+      state.hx += (state.thx - state.hx) * 0.05;
+      state.hy += (state.thy - state.hy) * 0.05;
+      hoverQ.setFromEuler(new THREE.Euler(state.hx + Math.sin(t * 0.6) * 0.03, state.hy, Math.sin(t * 0.4) * 0.02));
+      group.quaternion.copy(hoverQ).multiply(userQ).multiply(baseQ);
       group.position.y = (compact ? 0 : 0.1) + Math.sin(t * 0.9) * 0.06;
+      state.zoom += (state.tZoom - state.zoom) * 0.12;
+      camera.position.z = state.baseDist * state.zoom;
     }
 
     rings.update(t);
@@ -392,7 +489,10 @@ export function createRings(host, opts = {}) {
     const tl = g.timeline({ onComplete: resolve });
     // hadapkan cincin emas ke kamera, lalu kamera meluncur menembus lubangnya
     // (sedikit di atas pusat supaya tidak menabrak cincin rose gold)
-    tl.to(group.rotation, { x: 0.12, y: 0.35, z: 0, duration: duration * 0.45, ease: 'power2.inOut' }, 0)
+    const fromQ = group.quaternion.clone();
+    const toQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.12, 0.35, 0));
+    const k = { v: 0 };
+    tl.to(k, { v: 1, duration: duration * 0.45, ease: 'power2.inOut', onUpdate: () => group.quaternion.slerpQuaternions(fromQ, toQ, k.v) }, 0)
       .to(group.position, { x: 0.45 * Math.cos(0.35), y: -0.45, duration: duration * 0.45, ease: 'power2.inOut' }, 0)
       .to(camera.position, { z: 0.6, duration: duration * 0.75, ease: 'power3.in' }, duration * 0.25)
       .to(camera, { fov: 70, duration: duration * 0.75, ease: 'power3.in', onUpdate: () => camera.updateProjectionMatrix() }, duration * 0.25)
@@ -404,7 +504,11 @@ export function createRings(host, opts = {}) {
     ro.disconnect();
     target.removeEventListener('pointermove', onMove);
     target.removeEventListener('pointerdown', onDown);
+    target.removeEventListener('pointerup', onTap);
+    target.removeEventListener('wheel', onWheel);
+    target.removeEventListener('dblclick', onDbl);
     window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
     window.removeEventListener('deviceorientation', onOrient);
     rings.dispose();
     pGeo.dispose();

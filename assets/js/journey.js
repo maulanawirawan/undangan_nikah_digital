@@ -6,7 +6,7 @@
  * lintasan dua cincin terbang lalu saling mengait. Semua dikendalikan scroll.
  */
 import * as THREE from 'three';
-import { buildRingPair, makeEnvironment, dotTexture, webglOK } from './scene.js';
+import { buildRingPair, useStudioEnv, dotTexture, webglOK } from './scene.js';
 
 const C = window.WEDDING || {};
 const section = document.getElementById('cerita');
@@ -155,7 +155,7 @@ async function init() {
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(BG, 6, 24);
-  scene.environment = makeEnvironment(renderer);
+  useStudioEnv(renderer, scene, 1.15);
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 90);
 
   // ---------- Lintasan kamera ----------
