@@ -19,20 +19,20 @@
   window.WEDDING = {
     couple: {
       bride: {
-        nick: 'Alya',
-        full: 'Alya Putri Rahmadani',
+        nick: 'Maulana',
+        full: 'Maulana',
         parents: 'Putri pertama dari Bapak Hendra Wijaya & Ibu Sari Lestari',
-        instagram: 'alyaputri',
+        instagram: 'cirrostratoooze',
         photo: U('photo-1460978812857-470ed1c77af0', 900),
       },
       groom: {
-        nick: 'Dimas',
-        full: 'Dimas Arya Pratama',
+        nick: 'Wirawan',
+        full: 'Wirawan',
         parents: 'Putra kedua dari Bapak Agus Santoso & Ibu Rina Marlina',
-        instagram: 'dimasarya',
+        instagram: 'cirrostratoooze',
         photo: U('photo-1507504031003-b417219a0fde', 900),
       },
-      hashtag: '#AlyaDimasJourney',
+      hashtag: '#MaulanaWirawanJourney',
     },
 
     // Nama tamu diambil otomatis dari link: undangan.com/?to=Budi+Santoso
@@ -87,14 +87,14 @@
     livestream: {
       enabled: true,
       label: 'Nonton live di Instagram',
-      url: 'https://instagram.com/alyaputri',
+      url: 'https://www.instagram.com/cirrostratoooze/',
     },
 
     // Musik: isi src dengan file mp3 kalian (mis. 'assets/media/lagu.mp3').
     // Kalau kosong, undangan memutar musik lo-fi yang dibuat langsung di browser.
     music: {
       src: '',
-      title: 'Lo-fi untuk Alya & Dimas',
+      title: 'Lo-fi untuk Maulana & Wirawan',
       autoplayOnOpen: false,
     },
 
@@ -176,12 +176,12 @@
     gifts: {
       note: 'Doa restu kalian sudah lebih dari cukup. Kalau ingin memberi tanda kasih, bisa lewat amplop digital di bawah ini.',
       accounts: [
-        { bank: 'BCA', number: '1234567890', name: 'Alya Putri Rahmadani' },
-        { bank: 'Mandiri', number: '1370012345678', name: 'Dimas Arya Pratama' },
+        { bank: 'BCA', number: '1234567890', name: 'Maulana' },
+        { bank: 'Mandiri', number: '1370012345678', name: 'Wirawan' },
       ],
       address: {
         label: 'Kirim kado fisik',
-        name: 'Alya & Dimas',
+        name: 'Maulana & Wirawan',
         text: 'Jl. Kenanga No. 21, Cilandak, Jakarta Selatan 12430',
       },
     },
