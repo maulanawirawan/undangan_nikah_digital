@@ -83,19 +83,45 @@ export function dotTexture() {
   return new THREE.CanvasTexture(c);
 }
 
+// Berlian potongan marquise (navette): lonjong dengan kedua ujung runcing.
+// L = setengah panjang, W = setengah lebar (rasio klasik ±2:1).
+export const MARQUISE = { L: 1.7, W: 0.85 };
+function marquiseOutline(n = 12) {
+  const { L, W } = MARQUISE;
+  const R = (L * L + W * W) / (2 * W), c = R - W, a0 = Math.asin(L / R);
+  const pts = [];
+  for (let i = 0; i < n; i++) { const a = -a0 + (2 * a0 * i) / n; pts.push([R * Math.sin(a), R * Math.cos(a) - c]); }
+  for (let i = 0; i < n; i++) { const a = a0 - (2 * a0 * i) / n; pts.push([R * Math.sin(a), -(R * Math.cos(a) - c)]); }
+  return pts;
+}
 function diamondGeometry() {
-  // Profil brilliant-cut sederhana diputar 16 sisi → faset
-  const pts = [
-    new THREE.Vector2(0.0001, -0.62), // culet
-    new THREE.Vector2(0.62, -0.05),
-    new THREE.Vector2(1.0, 0.0),      // girdle
-    new THREE.Vector2(1.0, 0.05),
-    new THREE.Vector2(0.78, 0.2),
-    new THREE.Vector2(0.56, 0.33),    // tepi table
-    new THREE.Vector2(0.0001, 0.33),  // table
-  ];
-  const g = new THREE.LatheGeometry(pts, 16);
-  return g.toNonIndexed();
+  const o = marquiseOutline();
+  const n = o.length;
+  const G = o.map(([x, z]) => new THREE.Vector3(x, 0, z));          // girdle bawah
+  const Gt = o.map(([x, z]) => new THREE.Vector3(x, 0.05, z));      // girdle atas
+  const T = o.map(([x, z]) => new THREE.Vector3(x * 0.58, 0.33, z * 0.5)); // tepi table
+  const tableC = new THREE.Vector3(0, 0.33, 0);
+  const pos = [];
+  const tri = (p1, p2, p3) => {
+    // pastikan normal menghadap keluar
+    const nrm = new THREE.Vector3().subVectors(p2, p1).cross(new THREE.Vector3().subVectors(p3, p1));
+    const cen = new THREE.Vector3().add(p1).add(p2).add(p3).multiplyScalar(1 / 3);
+    if (nrm.dot(cen) < 0) [p2, p3] = [p3, p2];
+    pos.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z);
+  };
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    tri(tableC, T[i], T[j]);                       // table
+    tri(T[i], Gt[i], Gt[j]); tri(T[i], Gt[j], T[j]); // crown
+    tri(Gt[i], G[i], G[j]); tri(Gt[i], G[j], Gt[j]); // girdle
+    const K = new THREE.Vector3(o[i][0] * 0.28, -0.62, 0); // keel (culet memanjang)
+    const K2 = new THREE.Vector3(o[j][0] * 0.28, -0.62, 0);
+    tri(G[i], K, G[j]); tri(G[j], K, K2);          // pavilion
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return g;
 }
 
 // Membangun sepasang cincin (dipakai sampul, perjalanan scroll, dan penutup)
@@ -111,9 +137,9 @@ export function buildRingPair() {
     iridescence: 0.25, iridescenceIOR: 1.6, iridescenceThicknessRange: [180, 420],
   });
   const diamondMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, metalness: 0, roughness: 0, transmission: 1, thickness: 0.6, ior: 2.42,
-    dispersion: 4, iridescence: 0.35, iridescenceIOR: 1.8, specularIntensity: 1, envMapIntensity: 2.6,
-    flatShading: true, transparent: false,
+    color: 0xffffff, metalness: 0, roughness: 0, transmission: 0.55, thickness: 0.4, ior: 2.42,
+    dispersion: 5, iridescence: 0.5, iridescenceIOR: 1.8, specularIntensity: 1, envMapIntensity: 4,
+    clearcoat: 1, clearcoatRoughness: 0, flatShading: true,
   });
 
   // ---------- Rings ----------
@@ -141,19 +167,22 @@ export function buildRingPair() {
   setting.rotation.z = theta - Math.PI / 2; // sumbu +Y lokal mengarah keluar
   ringBGroup.add(setting);
 
-  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.07, 0.12, 24), rose);
+  const DS = 0.2; // skala berlian
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.065, 0.12, 24), rose);
+  head.scale.x = 1.9; // dudukan ikut lonjong
   head.position.y = 0.06;
   setting.add(head);
-  const prongGeo = new THREE.CapsuleGeometry(0.018, 0.2, 4, 8);
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
+  const prongGeo = new THREE.CapsuleGeometry(0.016, 0.1, 4, 8);
+  // 2 prong-V di ujung runcing + 4 di sisi, khas setting marquise
+  [[MARQUISE.L, 0], [-MARQUISE.L, 0], [0.55, 0.75], [0.55, -0.75], [-0.55, 0.75], [-0.55, -0.75]].forEach(([x, z]) => {
+    const px = x * DS, pz = z * DS, len = Math.hypot(px, pz);
     const p = new THREE.Mesh(prongGeo, rose);
-    p.position.set(Math.cos(a) * 0.14, 0.2, Math.sin(a) * 0.14);
-    p.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35);
+    p.position.set(px * 1.02, 0.28, pz * 1.02);
+    p.rotation.set((pz / len) * -0.25, 0, -(px / len) * -0.25);
     setting.add(p);
-  }
+  });
   const diamond = new THREE.Mesh(diamondGeometry(), diamondMat);
-  diamond.scale.setScalar(0.23);
+  diamond.scale.setScalar(DS);
   diamond.position.y = 0.27;
   setting.add(diamond);
 
