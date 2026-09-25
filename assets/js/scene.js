@@ -83,40 +83,69 @@ export function dotTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-// Berlian potongan marquise (navette): lonjong dengan kedua ujung runcing.
-// L = setengah panjang, W = setengah lebar (rasio klasik ±2:1).
-export const MARQUISE = { L: 1.7, W: 0.85 };
-function marquiseOutline(n = 12) {
+// Berlian potongan marquise (modified brilliant, 58 faset) dengan proporsi ideal
+// referensi gemologi: rasio panjang:lebar ±1.95, table 58%, depth 61%
+// (crown 13%, girdle 3%, pavilion 45% dari lebar), keel pendek sebagai culet.
+// Satuan: lebar = 1 → L = setengah panjang, W = setengah lebar.
+export const MARQUISE = { L: 0.975, W: 0.5 };
+function marquisePoint(theta) {
+  // titik tepi (girdle) pada arah theta: perpotongan sinar dengan dua busur lingkaran
   const { L, W } = MARQUISE;
-  const R = (L * L + W * W) / (2 * W), c = R - W, a0 = Math.asin(L / R);
-  const pts = [];
-  for (let i = 0; i < n; i++) { const a = -a0 + (2 * a0 * i) / n; pts.push([R * Math.sin(a), R * Math.cos(a) - c]); }
-  for (let i = 0; i < n; i++) { const a = a0 - (2 * a0 * i) / n; pts.push([R * Math.sin(a), -(R * Math.cos(a) - c)]); }
-  return pts;
+  const R = (L * L + W * W) / (2 * W), c = R - W;
+  const dx = Math.cos(theta), dz = Math.sin(theta);
+  const cy = dz >= 0 ? -c : c; // busur atas berpusat di (0,-c), bawah di (0,c)
+  // |t*d - (0,cy)| = R  →  t^2 - 2 t (dz*cy) + cy^2 - R^2 = 0
+  const bq = -2 * dz * cy, cq = cy * cy - R * R;
+  const t = (-bq + Math.sqrt(bq * bq - 4 * cq)) / 2;
+  return [t * dx, t * dz];
 }
 function diamondGeometry() {
-  const o = marquiseOutline();
-  const n = o.length;
-  const G = o.map(([x, z]) => new THREE.Vector3(x, 0, z));          // girdle bawah
-  const Gt = o.map(([x, z]) => new THREE.Vector3(x, 0.05, z));      // girdle atas
-  const T = o.map(([x, z]) => new THREE.Vector3(x * 0.58, 0.33, z * 0.5)); // tepi table
-  const tableC = new THREE.Vector3(0, 0.33, 0);
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const CROWN = 0.13, GIRDLE = 0.03, PAV = 0.45, TABLE = 0.58, STAR = 0.5, LOWER = 0.78, KEEL = 0.22;
+  const yT = GIRDLE / 2 + CROWN, yG = GIRDLE / 2, yC = -GIRDLE / 2 - PAV;
+  const N = 8; // arah utama (bezel/main)
+  const dir = (k) => (k * Math.PI) / N;  // 16 titik girdle: genap = utama, ganjil = antara
+  const gp = [];
+  for (let k = 0; k < 2 * N; k++) gp.push(marquisePoint(dir(k)));
+  const Gt = gp.map(([x, z]) => V(x, yG, z));
+  const Gb = gp.map(([x, z]) => V(x, -yG, z));
+  const tableHalfW = TABLE / 2; // table 58% dari lebar
+  const T = [], S = [], M = [], C = [];
+  for (let i = 0; i < N; i++) {
+    const [x, z] = gp[2 * i];
+    T.push(V(x * (tableHalfW / MARQUISE.W) * 0.92, yT, z * (tableHalfW / MARQUISE.W)));
+    const [lx, lz] = gp[2 * i]; // bawah: titik lower-girdle & keel
+    M.push(V(lx * (1 - LOWER), -yG - PAV * LOWER, lz * (1 - LOWER)));
+    C.push(V(lx * KEEL, yC, 0));
+  }
+  for (let i = 0; i < N; i++) {
+    const a = T[i], b = T[(i + 1) % N], g = Gt[2 * i + 1];
+    const mid = a.clone().add(b).multiplyScalar(0.5);
+    S.push(mid.lerp(g, STAR));
+  }
   const pos = [];
   const tri = (p1, p2, p3) => {
-    // pastikan normal menghadap keluar
-    const nrm = new THREE.Vector3().subVectors(p2, p1).cross(new THREE.Vector3().subVectors(p3, p1));
-    const cen = new THREE.Vector3().add(p1).add(p2).add(p3).multiplyScalar(1 / 3);
-    if (nrm.dot(cen) < 0) [p2, p3] = [p3, p2];
+    const n = new THREE.Vector3().subVectors(p2, p1).cross(new THREE.Vector3().subVectors(p3, p1));
+    const cen = V(0, 0, 0).add(p1).add(p2).add(p3).multiplyScalar(1 / 3);
+    if (n.dot(cen) < 0) [p2, p3] = [p3, p2];
     pos.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z);
   };
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    tri(tableC, T[i], T[j]);                       // table
-    tri(T[i], Gt[i], Gt[j]); tri(T[i], Gt[j], T[j]); // crown
-    tri(Gt[i], G[i], G[j]); tri(Gt[i], G[j], Gt[j]); // girdle
-    const K = new THREE.Vector3(o[i][0] * 0.28, -0.62, 0); // keel (culet memanjang)
-    const K2 = new THREE.Vector3(o[j][0] * 0.28, -0.62, 0);
-    tri(G[i], K, G[j]); tri(G[j], K, K2);          // pavilion
+  const G = 2 * N, w = (k) => (k + G) % G;
+  const tc = V(0, yT, 0);
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N, p = (i - 1 + N) % N;
+    tri(tc, T[i], T[j]);                                        // table
+    tri(T[i], T[j], S[i]);                                      // star
+    tri(T[i], S[p], Gt[2 * i]); tri(T[i], Gt[2 * i], S[i]);     // bezel (kite)
+    tri(S[i], Gt[2 * i], Gt[2 * i + 1]);                        // upper girdle ×2
+    tri(S[i], Gt[2 * i + 1], Gt[w(2 * i + 2)]);
+    for (const k of [2 * i, 2 * i + 1]) {                        // girdle
+      tri(Gt[k], Gb[k], Gb[w(k + 1)]); tri(Gt[k], Gb[w(k + 1)], Gt[w(k + 1)]);
+    }
+    tri(Gb[2 * i], Gb[2 * i + 1], M[i]);                        // lower girdle
+    tri(Gb[2 * i + 1], M[j], M[i]);
+    tri(Gb[2 * i + 1], Gb[w(2 * i + 2)], M[j]);
+    tri(M[i], M[j], C[i]); tri(M[j], C[j], C[i]);               // pavilion main → keel
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -138,7 +167,7 @@ export function buildRingPair() {
   });
   const diamondMat = new THREE.MeshPhysicalMaterial({
     color: 0xffffff, metalness: 0, roughness: 0, transmission: 0.55, thickness: 0.4, ior: 2.42,
-    dispersion: 5, iridescence: 0.5, iridescenceIOR: 1.8, specularIntensity: 1, envMapIntensity: 4,
+    dispersion: 5, iridescence: 0.2, iridescenceIOR: 1.8, specularIntensity: 1, envMapIntensity: 4,
     clearcoat: 1, clearcoatRoughness: 0, flatShading: true,
   });
 
@@ -167,23 +196,26 @@ export function buildRingPair() {
   setting.rotation.z = theta - Math.PI / 2; // sumbu +Y lokal mengarah keluar
   ringBGroup.add(setting);
 
-  const DS = 0.2; // skala berlian
+  const DS = 0.3; // skala berlian (panjang ≈ 0.58, lebar ≈ 0.3 satuan cincin)
   const head = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.065, 0.12, 24), rose);
   head.scale.x = 1.9; // dudukan ikut lonjong
   head.position.y = 0.06;
+  head.scale.z = 0.9;
   setting.add(head);
   const prongGeo = new THREE.CapsuleGeometry(0.016, 0.1, 4, 8);
   // 2 prong-V di ujung runcing + 4 di sisi, khas setting marquise
-  [[MARQUISE.L, 0], [-MARQUISE.L, 0], [0.55, 0.75], [0.55, -0.75], [-0.55, 0.75], [-0.55, -0.75]].forEach(([x, z]) => {
-    const px = x * DS, pz = z * DS, len = Math.hypot(px, pz);
+  // 2 prong-V di ujung runcing + 4 di sisi, tepat di tepi girdle
+  [0, Math.PI, 0.45, -0.45, Math.PI - 0.45, Math.PI + 0.45].forEach((th) => {
+    const [gx, gz] = marquisePoint(th);
+    const px = gx * DS, pz = gz * DS, len = Math.hypot(px, pz);
     const p = new THREE.Mesh(prongGeo, rose);
-    p.position.set(px * 1.02, 0.28, pz * 1.02);
-    p.rotation.set((pz / len) * -0.25, 0, -(px / len) * -0.25);
+    p.position.set(px * 1.04, 0.24, pz * 1.04);
+    p.rotation.set(-(pz / len) * 0.3, 0, (px / len) * 0.3); // miring sedikit ke dalam, mencengkeram batu
     setting.add(p);
   });
   const diamond = new THREE.Mesh(diamondGeometry(), diamondMat);
   diamond.scale.setScalar(DS);
-  diamond.position.y = 0.27;
+  diamond.position.y = 0.26;
   setting.add(diamond);
 
   // ---------- Kilau (glints) ----------
